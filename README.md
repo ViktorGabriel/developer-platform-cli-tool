@@ -23,9 +23,16 @@ Ferramenta CLI empresarial de auditoria de segurança estática e dinâmica para
 3. **Varredura de Segredos em Configurações (YAML/JSON):**
    - Detecção heurística e por expressões regulares de chaves privadas (RSA/OPENSSH), tokens de API, credenciais AWS e segredos mockados ou expostos.
 
-4. **Relatórios Multi-Formato:**
+4. **Exportação no Padrão OASIS SARIF v2.1.0:**
+   - Suporte nativo para envio e integração direta com a aba **Security / Code Scanning alerts** do GitHub.
+
+5. **Auditoria de Histórico Git (`scan-git-history`):**
+   - Inspeciona diffs de commits recentes em busca de credenciais vazadas e chaves adicionadas ao repositório.
+
+6. **Relatórios Multi-Formato:**
    - **Terminal:** Tabelas formatadas e painéis de severidade com [Rich](https://rich.readthedocs.io/).
-   - **JSON:** Formato estruturado para integração com pipelines de CI/CD.
+   - **SARIF:** Padrão OASIS v2.1.0 para GitHub Advanced Security e CI/CD.
+   - **JSON:** Formato estruturado para automações customizadas.
    - **Markdown:** Sumário técnico para PRs e documentações de auditoria.
 
 ---
@@ -78,9 +85,16 @@ cloudsec scan-config ./config.yaml
 cloudsec scan-config ./k8s-manifest.json --format table
 ```
 
-### 4. Auditoria Geral do Repositório / Diretório
+### 4. Varrer Histórico de Commits do Git
+```bash
+cloudsec scan-git-history . --commits 15 --format table
+cloudsec scan-git-history . --commits 10 --format sarif --output results.sarif
+```
+
+### 5. Auditoria Geral do Repositório / Diretório
 ```bash
 cloudsec scan-all ./ --format table
+cloudsec scan-all ./ --format sarif --output audit-security.sarif
 ```
 
 ---

@@ -1,8 +1,9 @@
-"""Parsers for Dockerfiles, configurations and container environments."""
+"""Parsers for Dockerfiles, configurations, containers, and Git history."""
 
 from cloudsec.parsers.config import ConfigEntry, ConfigParser
 from cloudsec.parsers.container import ContainerInfo, ContainerParser
 from cloudsec.parsers.dockerfile import DockerfileInstruction, DockerfileParser
+from cloudsec.parsers.git import GitCommitDiff, GitParser
 
 __all__ = [
     "ConfigEntry",
@@ -11,4 +12,6 @@ __all__ = [
     "ContainerParser",
     "DockerfileInstruction",
     "DockerfileParser",
+    "GitCommitDiff",
+    "GitParser",
 ]

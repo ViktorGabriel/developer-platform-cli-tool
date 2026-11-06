@@ -9,6 +9,7 @@ from cloudsec.models.finding import AuditSummary, Finding, RuleCategory, Severit
 from cloudsec.models.report import AuditReport
 from cloudsec.reporters.json_reporter import JsonReporter
 from cloudsec.reporters.markdown_reporter import MarkdownReporter
+from cloudsec.reporters.sarif_reporter import SarifReporter
 from cloudsec.reporters.terminal_reporter import TerminalReporter
 
 
@@ -84,3 +85,31 @@ def test_terminal_reporter() -> None:
     assert "CloudSec & Container Audit CLI" in output
     assert "Sumário Executivo" in output
     assert "SEC-DKR-001" in output
+
+
+def test_sarif_reporter() -> None:
+    report = sample_report()
+    sarif_str = SarifReporter.render(report)
+    sarif_data = json.loads(sarif_str)
+
+    assert sarif_data["version"] == "2.1.0"
+    assert "$schema" in sarif_data
+    assert len(sarif_data["runs"]) == 1
+
+    driver = sarif_data["runs"][0]["tool"]["driver"]
+    assert driver["name"] == "CloudSec CLI"
+    assert len(driver["rules"]) == 2
+
+    results = sarif_data["runs"][0]["results"]
+    assert len(results) == 2
+
+    # Check level mappings
+    levels = {r["level"] for r in results}
+    assert "error" in levels
+
+    # Verify physical locations
+    for res in results:
+        loc = res["locations"][0]["physicalLocation"]
+        assert "artifactLocation" in loc
+        assert loc["artifactLocation"]["uriBaseId"] == "%SRCROOT%"
+        assert loc["region"]["startLine"] in (1, 10)

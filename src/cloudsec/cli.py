@@ -14,9 +14,11 @@ from cloudsec.models.report import AuditReport
 from cloudsec.parsers.container import ContainerParser
 from cloudsec.reporters.json_reporter import JsonReporter
 from cloudsec.reporters.markdown_reporter import MarkdownReporter
+from cloudsec.reporters.sarif_reporter import SarifReporter
 from cloudsec.reporters.terminal_reporter import TerminalReporter
 from cloudsec.scanners.container_rules import ContainerScanner
 from cloudsec.scanners.dockerfile_rules import DockerfileScanner
+from cloudsec.scanners.git_scanner import GitHistoryScanner
 from cloudsec.scanners.secrets_rules import SecretsScanner
 
 app = typer.Typer(
@@ -33,6 +35,7 @@ class OutputFormat(StrEnum):
     TABLE = "table"
     JSON = "json"
     MARKDOWN = "markdown"
+    SARIF = "sarif"
 
 
 def _emit_report(
@@ -67,6 +70,10 @@ def _emit_report(
             print(content)
     elif output_format == OutputFormat.MARKDOWN:
         content = MarkdownReporter.render(report)
+        if not output_file:
+            print(content)
+    elif output_format == OutputFormat.SARIF:
+        content = SarifReporter.render(report)
         if not output_file:
             print(content)
 
@@ -327,6 +334,70 @@ def scan_all(
     _emit_report(
         findings=findings,
         targets_count=targets_count,
+        duration=duration,
+        output_format=output_format,
+        output_file=output_file,
+        fail_on_critical=fail_on_critical,
+    )
+
+
+@app.command("scan-git-history")
+def scan_git_history(
+    repo_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Caminho do repositório Git local a ser auditado.",
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+        ),
+    ] = Path("."),
+    commits_count: Annotated[
+        int,
+        typer.Option(
+            "--commits",
+            "-n",
+            help="Número de commits recentes a inspecionar.",
+            min=1,
+        ),
+    ] = 10,
+    output_format: Annotated[
+        OutputFormat,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Formato do relatório de saída (table, json, markdown, sarif).",
+        ),
+    ] = OutputFormat.TABLE,
+    output_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            "-o",
+            help="Caminho do arquivo para salvar o relatório.",
+        ),
+    ] = None,
+    fail_on_critical: Annotated[
+        bool,
+        typer.Option(
+            "--fail-on-critical",
+            help="Retorna código de saída 1 caso existam vulnerabilidades CRITICAL ou HIGH.",
+        ),
+    ] = False,
+) -> None:
+    """Inspeciona commits recentes do Git em busca de credenciais e segredos vazados no histórico."""
+    start_time = time.perf_counter()
+    try:
+        findings = GitHistoryScanner.scan_repository(repo_path=repo_path, max_commits=commits_count)
+    except Exception as err:
+        console.print(f"[bold red]Erro ao inspecionar histórico Git:[/bold red] {err}")
+        raise typer.Exit(code=2) from err
+
+    duration = time.perf_counter() - start_time
+    _emit_report(
+        findings=findings,
+        targets_count=commits_count,
         duration=duration,
         output_format=output_format,
         output_file=output_file,
