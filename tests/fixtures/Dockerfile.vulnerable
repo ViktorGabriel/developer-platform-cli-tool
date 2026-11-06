@@ -1,0 +1,10 @@
+FROM python:latest
+
+ENV DB_PASSWORD=supersecretpassword123
+ADD script.tar.gz /app/
+
+RUN curl -sSL https://example.com/install.sh | bash
+
+EXPOSE 22 80 3306
+
+CMD ["python", "app.py"]

@@ -1,0 +1,45 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-and-test:
+    name: Lint, Type Check & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          uv venv
+          uv pip install ".[dev]"
+
+      - name: Run Ruff Linter & Formatter Check
+        run: |
+          uv run ruff check src tests
+          uv run ruff format --check src tests
+
+      - name: Run Mypy Type Checking
+        run: |
+          uv run mypy src tests
+
+      - name: Run Pytest with Coverage
+        run: |
+          uv run pytest --cov=cloudsec --cov-report=xml --cov-report=term-missing tests/

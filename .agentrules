@@ -1,0 +1,6 @@
+# Regras de Escopo e Git
+- Seu escopo de atuação é estritamente restrito a este diretório.
+- Não crie referências ou dependências fora desta pasta.
+- Padronize commits no formato Conventional Commits (feat, fix, docs, chore).
+- Execute a suíte de testes antes de cada commit.
+- Ao concluir uma feature, execute o push para a branch `main` ou `develop`.
