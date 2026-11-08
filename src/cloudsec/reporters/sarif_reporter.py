@@ -1,6 +1,8 @@
 """SARIF (Static Analysis Results Interchange Format) v2.1.0 reporter for GitHub Security."""
 
 import json
+import os
+import re
 from typing import Any
 
 from cloudsec.models.finding import Severity
@@ -50,18 +52,23 @@ class SarifReporter:
                     },
                 }
 
-            # Normalize URI / target path for SARIF (forward slashes)
+            # Normalize URI / target path for SARIF (relative forward slashes for %SRCROOT%)
             target_uri = finding.target.replace("\\", "/")
-            if ":" in target_uri and not target_uri.startswith("http"):
-                # Handle Windows drive letters or trailing info
-                parts = target_uri.split(":")
-                if len(parts) > 2:
-                    target_uri = parts[0] + ":" + parts[1]
+            if not target_uri.startswith("http"):
+                try:
+                    cwd = os.getcwd().replace("\\", "/")
+                    if target_uri.startswith(cwd + "/"):
+                        target_uri = target_uri[len(cwd) + 1 :]
+                except OSError:
+                    pass
+                # Strip Windows drive letter (e.g. C:/ or D:/) so SARIF doesn't treat drive as URI scheme
+                target_uri = re.sub(r"^[A-Za-z]:/+", "", target_uri)
+                target_uri = target_uri.lstrip("/")
 
             location_dict: dict[str, Any] = {
                 "physicalLocation": {
                     "artifactLocation": {
-                        "uri": target_uri,
+                        "uri": target_uri or "unknown",
                         "uriBaseId": "%SRCROOT%",
                     }
                 }
